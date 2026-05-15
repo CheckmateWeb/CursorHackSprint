@@ -23,6 +23,7 @@ export function WorldHUD() {
   const audioEnabled = useAppStore((s) => s.audioEnabled);
   const setAudioEnabled = useAppStore((s) => s.setAudioEnabled);
   const enteredWorld = useAppStore((s) => s.enteredWorld);
+  const pointerLocked = useAppStore((s) => s.pointerLocked);
   const setEnteredWorld = useAppStore((s) => s.setEnteredWorld);
   const reset = useAppStore((s) => s.reset);
 
@@ -53,48 +54,55 @@ export function WorldHUD() {
   }
 
   return (
-    <div className="hud">
-      <header className="hud-top">
-        <div className="hud-title-block">
-          <span className="hud-eyebrow">Now exploring</span>
-          <h1>{analysis?.title}</h1>
-          <span className="hud-mood">{analysis?.mood}</span>
+    <>
+      {!pointerLocked && (
+        <div className="hud-pointer-hint" role="status">
+          Click to look around
         </div>
-        <button type="button" className="hud-exit" onClick={reset} aria-label="Exit">
-          Exit Gallery
-        </button>
-      </header>
-
-      {narrationEnabled && analysis && (
-        <aside className="hud-narration">{analysis.narration}</aside>
       )}
+      <div className="hud">
+        <header className="hud-top">
+          <div className="hud-title-block">
+            <span className="hud-eyebrow">Now exploring</span>
+            <h1>{analysis?.title}</h1>
+            <span className="hud-mood">{analysis?.mood}</span>
+          </div>
+          <button type="button" className="hud-exit" onClick={reset} aria-label="Exit">
+            Exit Gallery
+          </button>
+        </header>
 
-      <footer className="hud-bottom">
-        <div className="hud-styles">
-          {STYLES.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              className={style === s.id ? 'active' : ''}
-              onClick={() => setStyle(s.id)}
-            >
-              {s.label}
+        {narrationEnabled && analysis && (
+          <aside className="hud-narration">{analysis.narration}</aside>
+        )}
+
+        <footer className="hud-bottom">
+          <div className="hud-styles">
+            {STYLES.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={style === s.id ? 'active' : ''}
+                onClick={() => setStyle(s.id)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="hud-toggles">
+            <button type="button" onClick={() => setCompareMode(!compareMode)}>
+              {compareMode ? 'Hide' : 'Compare'} Original
             </button>
-          ))}
-        </div>
-
-        <div className="hud-toggles">
-          <button type="button" onClick={() => setCompareMode(!compareMode)}>
-            {compareMode ? 'Hide' : 'Compare'} Original
-          </button>
-          <button type="button" onClick={() => setNarrationEnabled(!narrationEnabled)}>
-            Narration {narrationEnabled ? 'On' : 'Off'}
-          </button>
-          <button type="button" onClick={toggleAudio}>
-            Sound {audioEnabled ? 'On' : 'Off'}
-          </button>
-        </div>
-      </footer>
-    </div>
+            <button type="button" onClick={() => setNarrationEnabled(!narrationEnabled)}>
+              Narration {narrationEnabled ? 'On' : 'Off'}
+            </button>
+            <button type="button" onClick={toggleAudio}>
+              Sound {audioEnabled ? 'On' : 'Off'}
+            </button>
+          </div>
+        </footer>
+      </div>
+    </>
   );
 }

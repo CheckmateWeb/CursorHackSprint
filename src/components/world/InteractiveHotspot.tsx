@@ -98,7 +98,7 @@ export function InteractiveHotspot({ object, analysis, hidden = false, revealDis
       </mesh>
       {active && (
         <Html center distanceFactor={8} style={{ pointerEvents: 'none' }}>
-          <div className="hotspot-memory">{memory}</motion>
+          <div className="hotspot-memory">{memory}</div>
         </Html>
       )}
     </group>
