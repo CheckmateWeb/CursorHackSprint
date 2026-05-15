@@ -11,6 +11,7 @@ interface AppState {
   narrationEnabled: boolean;
   audioEnabled: boolean;
   enteredWorld: boolean;
+  pointerLocked: boolean;
   analysisProgress: number;
 
   setPhase: (phase: AppPhase) => void;
@@ -21,6 +22,7 @@ interface AppState {
   setNarrationEnabled: (on: boolean) => void;
   setAudioEnabled: (on: boolean) => void;
   setEnteredWorld: (on: boolean) => void;
+  setPointerLocked: (on: boolean) => void;
   setAnalysisProgress: (n: number) => void;
   reset: () => void;
 }
@@ -35,6 +37,7 @@ const initial = {
   narrationEnabled: true,
   audioEnabled: true,
   enteredWorld: false,
+  pointerLocked: false,
   analysisProgress: 0,
 };
 
@@ -48,6 +51,7 @@ export const useAppStore = create<AppState>((set) => ({
   setNarrationEnabled: (narrationEnabled) => set({ narrationEnabled }),
   setAudioEnabled: (audioEnabled) => set({ audioEnabled }),
   setEnteredWorld: (enteredWorld) => set({ enteredWorld }),
+  setPointerLocked: (pointerLocked) => set({ pointerLocked }),
   setAnalysisProgress: (analysisProgress) => set({ analysisProgress }),
   reset: () => set(initial),
 }));

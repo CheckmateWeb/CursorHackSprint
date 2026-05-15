@@ -1,7 +1,8 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { SceneAnalysis } from '@/lib/types';
+import { getQualityTier, scaleCount } from '@/lib/quality';
 
 interface Props {
   analysis: SceneAnalysis;
@@ -9,7 +10,8 @@ interface Props {
 
 export function BrushStrokeParticles({ analysis }: Props) {
   const ref = useRef<THREE.Points>(null);
-  const count = 80;
+  const tier = getQualityTier();
+  const count = scaleCount(80, tier);
 
   const { positions, colors } = useMemo(() => {
     const positions = new Float32Array(count * 3);
@@ -24,7 +26,14 @@ export function BrushStrokeParticles({ analysis }: Props) {
       colors[i * 3 + 2] = c.b;
     }
     return { positions, colors };
-  }, [analysis.palette.accent]);
+  }, [analysis.palette.accent, count]);
+
+  useEffect(() => {
+    const geo = ref.current?.geometry;
+    return () => {
+      geo?.dispose();
+    };
+  }, []);
 
   useFrame((state) => {
     if (!ref.current) return;
