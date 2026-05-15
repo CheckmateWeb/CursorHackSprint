@@ -29,9 +29,9 @@ export function TransitionCinematic() {
       )}
       <div className="transition-vignette" />
       <div className="transition-text">
-        <p className="transition-eyebrow">You are entering</p>
-        <h2 className="transition-title">{analysis?.title ?? 'The Canvas'}</h2>
-        <p className="transition-mood">{analysis?.mood ?? 'serene'}</p>
+        <p className="transition-eyebrow">The frame breaks open</p>
+        <h2 className="transition-title">{analysis?.title ?? 'The Living Canvas'}</h2>
+        <p className="transition-mood">{analysis?.artisticEra ?? analysis?.mood}</p>
       </div>
     </div>
   );

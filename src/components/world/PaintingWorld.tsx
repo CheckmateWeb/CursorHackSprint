@@ -319,6 +319,7 @@ function SceneContent({ imageUrl, analysis, style }: PaintingWorldProps) {
       <EffectComposer multisampling={tier === 'high' ? 4 : 0}>
         <Bloom luminanceThreshold={uniforms.bloomThreshold} intensity={uniforms.bloom} />
         <Vignette offset={0.3} darkness={0.65} />
+<<<<<<< HEAD
         {uniforms.chromatic ? (
           <ChromaticAberration
             offset={new THREE.Vector2(0.0025, 0.0025)}
@@ -332,6 +333,14 @@ function SceneContent({ imageUrl, analysis, style }: PaintingWorldProps) {
         {uniforms.noiseOpacity > 0 ? <Noise opacity={uniforms.noiseOpacity} /> : <></>}
         {showGodRays ? (
           <GodRays sun={sunRef as never} density={0.9} decay={0.92} weight={0.4} exposure={0.4} />
+=======
+        {style === 'cyberpunk' ? (
+          <ChromaticAberration
+            offset={new THREE.Vector2(0.002, 0.002)}
+            radialModulation={false}
+            modulationOffset={0}
+          />
+>>>>>>> origin/master
         ) : (
           <></>
         )}

@@ -1,4 +1,13 @@
-import type { ColorPalette, DetectedObject, Mood, SceneAnalysis, WeatherEffect } from './types';
+import type {
+  ColorPalette,
+  DepthPlane,
+  DetectedObject,
+  Mood,
+  PaintMedium,
+  SceneAnalysis,
+  SpatialSoundSource,
+  WeatherEffect,
+} from './types';
 
 function rgbToHex(r: number, g: number, b: number): string {
   return `#${[r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
@@ -72,19 +81,83 @@ function inferWeather(
 
 function buildNarration(mood: Mood, objects: DetectedObject[], isNight: boolean): string {
   const moodLines: Record<Mood, string> = {
-    serene: 'A hush settles over the canvas — time slows, and every brushstroke breathes.',
-    melancholic: 'Shadows hold memories here. You walk through quiet longing painted in light.',
-    joyful: 'Color sings in every direction. The world hums with warmth and possibility.',
-    mysterious: 'Something waits just beyond sight. The painting whispers secrets to those who listen.',
-    dramatic: 'Light clashes with darkness in cathedral silence. Each step echoes with intent.',
-    ethereal: 'You float between dream and pigment — neither fully real, nor willing to leave.',
+    serene: 'The frame cannot hold it — pigment spills into the air around you.',
+    melancholic: 'Shadows peel away from the canvas and settle in the room.',
+    joyful: 'Color breaks free, wrapping your space in living brushstrokes.',
+    mysterious: 'The painting unfolds behind you; what was hidden now surrounds.',
+    dramatic: 'Light erupts past the frame, carving volume from flat paint.',
+    ethereal: 'The boundary dissolves — you stand inside the artist’s breath.',
   };
-  const time = isNight ? 'Moonlight drapes the scene in silver reverie.' : 'Sunlight filters through imagined air.';
+  const time = isNight
+    ? 'Turn slowly — starlight continues beyond the frame.'
+    : 'Move your device — the world shifts with your gaze.';
   const obj =
     objects.length > 0
-      ? ` You sense ${objects.slice(0, 2).map((o) => o.label.toLowerCase()).join(' and ')} lingering in the depth.`
+      ? ` ${objects.slice(0, 2).map((o) => o.label).join(' and ')} lift into the space beside you.`
       : '';
   return `${moodLines[mood]} ${time}${obj}`;
+}
+
+function inferMedium(saturation: number, contrast: number, warmth: number): PaintMedium {
+  if (saturation > 0.5 && contrast > 0.4) return 'oil';
+  if (saturation < 0.4 && contrast < 0.35) return 'watercolor';
+  if (warmth > 0.6) return 'acrylic';
+  if (saturation < 0.25) return 'digital';
+  return 'mixed';
+}
+
+function buildDepthPlanes(layerCount: number): DepthPlane[] {
+  const roles: DepthPlane['role'][] = ['foreground', 'midground', 'background'];
+  return Array.from({ length: layerCount }, (_, i) => {
+    const t = i / Math.max(1, layerCount - 1);
+    return {
+      id: `plane-${i}`,
+      role: roles[Math.min(2, Math.floor(t * 3))] ?? 'midground',
+      depth: 0.15 + t * 0.85,
+      scale: 1.2 - t * 0.35,
+      opacity: 0.55 + (1 - t) * 0.4,
+      offsetY: -0.2 + t * 0.35,
+    };
+  });
+}
+
+function buildSpatialSounds(
+  hasWater: boolean,
+  hasSky: boolean,
+  objects: DetectedObject[],
+): SpatialSoundSource[] {
+  const sounds: SpatialSoundSource[] = [];
+  if (hasWater) {
+    sounds.push({
+      id: 'water-l',
+      label: 'Flowing water',
+      pan: -0.75,
+      depth: 0.35,
+      type: 'water',
+    });
+  }
+  if (hasSky) {
+    sounds.push({ id: 'wind', label: 'Wind', pan: 0.4, depth: 0.8, type: 'wind' });
+  }
+  objects.slice(0, 2).forEach((o, i) => {
+    sounds.push({
+      id: `obj-snd-${i}`,
+      label: o.label,
+      pan: o.x * 2 - 1,
+      depth: o.depth,
+      type: 'chime',
+    });
+  });
+  sounds.push({ id: 'ambient', label: 'Room tone', pan: 0, depth: 0.5, type: 'ambient' });
+  return sounds;
+}
+
+function inferArtisticEra(mood: Mood, saturation: number, warmth: number): string {
+  if (saturation > 0.55 && warmth > 0.55) return 'Post-Impressionist swirl';
+  if (mood === 'melancholic') return 'Old Masters chiaroscuro';
+  if (mood === 'joyful' && warmth > 0.5) return 'American Modern diner glow';
+  if (mood === 'ethereal') return 'Symbolist dreamscape';
+  return 'Contemporary atmospheric';
 }
 
 function detectObjects(
@@ -219,22 +292,27 @@ export async function analyzePainting(imageUrl: string): Promise<SceneAnalysis> 
   const isNight = brightness < 0.38 && topAvg < 0.45;
 
   const mood = inferMood(warmth, brightness, saturation, contrast);
+  const medium = inferMedium(saturation, contrast, warmth);
   const weather = inferWeather(palette, brightness, hasWater);
   const objects = detectObjects(data, w, h, palette);
   const depthLayers = Math.min(6, Math.max(3, Math.floor(contrast * 10)));
+  const depthPlanes = buildDepthPlanes(depthLayers);
+  const spatialSounds = buildSpatialSounds(hasWater, hasSky, objects);
+  const artisticEra = inferArtisticEra(mood, saturation, warmth);
 
   const titles = [
-    'Threshold of Wonder',
-    'Echoes in Pigment',
+    'Unleashed Horizon',
     'The Living Canvas',
-    'Dreams in Oil and Light',
     'Beyond the Frame',
+    'Spatial Reverie',
+    'Painted Atmosphere',
   ];
   const title = titles[Math.floor(warmth * titles.length) % titles.length];
 
   return {
     palette,
     mood,
+    medium,
     warmth,
     brightness,
     contrast,
@@ -245,7 +323,10 @@ export async function analyzePainting(imageUrl: string): Promise<SceneAnalysis> 
     isNight,
     weather,
     depthLayers,
+    depthPlanes,
     objects,
+    spatialSounds,
+    artisticEra,
     narration: buildNarration(mood, objects, isNight),
     title,
   };

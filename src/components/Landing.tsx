@@ -23,18 +23,19 @@ export function Landing() {
     <div className="landing">
       <div className="landing-grain" aria-hidden />
       <header className="landing-header">
-        <span className="landing-eyebrow">Immersive Art Experience</span>
-        <h1 className="landing-title">Canvas Dreams</h1>
-        <p className="landing-tagline">Step Inside the Art.</p>
+        <span className="landing-eyebrow">AR Spatial Expansion</span>
+        <h1 className="landing-title">The Living Canvas</h1>
+        <p className="landing-tagline">Where paintings spill into your world.</p>
         <p className="landing-sub">
-          Upload a painting, sketch, or illustration — and walk through the world beyond the canvas.
+          Scan or upload artwork — AI extrapolates style, depth, and atmosphere into a 360°
+          motion-tracked space that wraps around you.
         </p>
       </header>
 
       <div className="landing-actions">
         <button type="button" className="btn-primary" onClick={() => fileRef.current?.click()}>
           <span className="btn-glow" />
-          Upload Your Artwork
+          Scan / Upload Artwork
         </button>
         <input
           ref={fileRef}
@@ -46,7 +47,7 @@ export function Landing() {
             if (f) handleFile(f);
           }}
         />
-        <p className="landing-hint">or choose a masterpiece to explore</p>
+        <p className="landing-hint">or choose a sample to unleash</p>
       </div>
 
       <div className="sample-grid">
@@ -64,8 +65,8 @@ export function Landing() {
       </div>
 
       <footer className="landing-footer">
-        <p>Where Paintings Come Alive</p>
-        <p className="landing-credits">Walk Through Imagination</p>
+        <p>The frame is only the beginning.</p>
+        <p className="landing-credits">Move your device — the world follows</p>
       </footer>
     </div>
   );

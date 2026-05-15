@@ -1,6 +1,6 @@
 import type { ArtStyle } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
-import { audioEngine } from '@/lib/audioEngine';
+import { spatialAudio } from '@/lib/spatialAudio';
 import './WorldHUD.css';
 
 const STYLES: { id: ArtStyle; label: string }[] = [
@@ -22,43 +22,74 @@ export function WorldHUD() {
   const setNarrationEnabled = useAppStore((s) => s.setNarrationEnabled);
   const audioEnabled = useAppStore((s) => s.audioEnabled);
   const setAudioEnabled = useAppStore((s) => s.setAudioEnabled);
+<<<<<<< HEAD
   const enteredWorld = useAppStore((s) => s.enteredWorld);
   const pointerLocked = useAppStore((s) => s.pointerLocked);
   const setEnteredWorld = useAppStore((s) => s.setEnteredWorld);
+=======
+  const unleashed = useAppStore((s) => s.enteredWorld);
+  const setUnleashed = useAppStore((s) => s.setEnteredWorld);
+  const expansionProgress = useAppStore((s) => s.expansionProgress);
+>>>>>>> origin/master
   const reset = useAppStore((s) => s.reset);
 
   const toggleAudio = () => {
     const next = !audioEnabled;
     setAudioEnabled(next);
-    if (!next) audioEngine.stop();
-    else if (analysis && enteredWorld) {
-      void audioEngine.init().then(() => audioEngine.start(analysis));
+    if (!next) spatialAudio.stop();
+    else if (analysis && unleashed) {
+      void spatialAudio.init().then(() => spatialAudio.start(analysis));
     }
   };
 
-  if (!enteredWorld) {
+  if (!unleashed) {
     return (
       <div className="hud-enter">
         <div className="hud-enter-panel">
           <h2>{analysis?.title}</h2>
+          <p className="hud-era">{analysis?.artisticEra}</p>
           <p className="hud-enter-narration">
-            {narrationEnabled ? analysis?.narration : 'Click to step inside the painting.'}
+            {narrationEnabled
+              ? analysis?.narration
+              : 'The artwork will expand beyond its frame into the space around you.'}
           </p>
-          <button type="button" className="btn-enter" onClick={() => setEnteredWorld(true)}>
-            Step Inside
+          <button type="button" className="btn-enter" onClick={() => setUnleashed(true)}>
+            Unleash the Canvas
           </button>
-          <p className="hud-controls-hint">WASD to walk · Mouse to look · Click glowing orbs</p>
+          <p className="hud-controls-hint">
+            Allow motion access · Turn your device to look around · Drag on desktop
+          </p>
         </div>
       </div>
     );
   }
 
   return (
+<<<<<<< HEAD
     <>
       {!pointerLocked && (
         <div className="hud-pointer-hint" role="status">
           Click to look around
         </div>
+=======
+    <div className="hud">
+      <header className="hud-top">
+        <div className="hud-title-block">
+          <span className="hud-eyebrow">Spatial expansion</span>
+          <h1>{analysis?.title}</h1>
+          <span className="hud-mood">
+            {analysis?.mood} · {analysis?.medium}
+            {expansionProgress < 100 ? ` · ${expansionProgress}%` : ''}
+          </span>
+        </div>
+        <button type="button" className="hud-exit" onClick={reset} aria-label="Exit">
+          Exit
+        </button>
+      </header>
+
+      {narrationEnabled && analysis && (
+        <aside className="hud-narration">{analysis.narration}</aside>
+>>>>>>> origin/master
       )}
       <div className="hud">
         <header className="hud-top">
@@ -94,6 +125,7 @@ export function WorldHUD() {
             <button type="button" onClick={() => setCompareMode(!compareMode)}>
               {compareMode ? 'Hide' : 'Compare'} Original
             </button>
+<<<<<<< HEAD
             <button type="button" onClick={() => setNarrationEnabled(!narrationEnabled)}>
               Narration {narrationEnabled ? 'On' : 'Off'}
             </button>
@@ -104,5 +136,23 @@ export function WorldHUD() {
         </footer>
       </div>
     </>
+=======
+          ))}
+        </div>
+
+        <div className="hud-toggles">
+          <button type="button" onClick={() => setCompareMode(!compareMode)}>
+            {compareMode ? 'Hide' : 'Show'} Frame
+          </button>
+          <button type="button" onClick={() => setNarrationEnabled(!narrationEnabled)}>
+            Narration {narrationEnabled ? 'On' : 'Off'}
+          </button>
+          <button type="button" onClick={toggleAudio}>
+            Spatial Audio {audioEnabled ? 'On' : 'Off'}
+          </button>
+        </div>
+      </footer>
+    </div>
+>>>>>>> origin/master
   );
 }
