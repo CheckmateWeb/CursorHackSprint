@@ -80,6 +80,8 @@ export interface SceneAnalysis {
 }
 
 export interface ExpansionTextures {
+  /** 2:1 equirectangular map for immersive 360° sphere */
+  equirectUrl: string;
   panoramaUrl: string;
   backUrl: string;
   leftStripUrl: string;

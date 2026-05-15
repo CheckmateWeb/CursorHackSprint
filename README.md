@@ -17,10 +17,23 @@
 
 ```bash
 npm install
+cp .env.example .env   # optional: add Replicate token for AI outpainting
 npm run dev
 ```
 
 Open the URL shown in the terminal (usually `http://localhost:5173`).
+
+### AI painting extension (optional)
+
+To generate **more real painting detail** beyond the frame (not just blurred smears), add a [Replicate](https://replicate.com) API token:
+
+```
+VITE_REPLICATE_API_TOKEN=r8_xxx
+```
+
+Uses inpainting/outpainting models (`emaph/outpaint-controlnet-union` or `stability-ai/stable-diffusion-inpainting`) to extend left/right in the artist’s style. Without a token, the app uses **patch-based texture synthesis** locally.
+
+Other options we evaluated: [openOutpaint](https://github.com/zero01101/openOutpaint) (needs local Stable Diffusion server), Hugging Face Diffusers (requires self-hosted GPU).
 
 ## Build
 

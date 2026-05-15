@@ -85,3 +85,15 @@
   letter-spacing: 0.2em;
   color: var(--gold-dim);
 }
+
+.analyzing-api-hint {
+  font-size: 0.72rem;
+  color: rgba(244, 239, 230, 0.45);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.analyzing-api-hint code {
+  font-size: 0.68rem;
+  color: var(--gold-dim);
+}

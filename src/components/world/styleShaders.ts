@@ -12,5 +12,5 @@ export const styleUniforms: Record<ArtStyle, StyleUniforms> = {
   watercolor: { tint: '#e8f4fc', opacityMul: 0.75, bloom: 0.55 },
   surreal: { tint: '#f0e6ff', opacityMul: 0.85, bloom: 0.7 },
   cyberpunk: { tint: '#00fff2', opacityMul: 0.9, bloom: 0.9 },
-  pixel: { tint: '#c8ffc8', opacityMul: 0.88, bloom: 0.2 },
+  pixel: { tint: '#e8f0e8', opacityMul: 0.92, bloom: 0.35 },
 };

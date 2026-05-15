@@ -1,6 +1,6 @@
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Sparkles, useTexture } from '@react-three/drei';
+import { Float, Sparkles, Stars, useTexture } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import type { ArtStyle, ExpansionTextures, SceneAnalysis } from '@/lib/types';
@@ -10,6 +10,8 @@ import { useAppStore } from '@/store/useAppStore';
 import { styleUniforms } from '@/components/world/styleShaders';
 import { WeatherLayer } from '@/components/world/WeatherLayer';
 import { ArtisticDust } from './ArtisticDust';
+import { DepthBillboard } from './DepthBillboard';
+import './canvas-shell.css';
 
 interface LivingCanvasProps {
   imageUrl: string;
@@ -29,57 +31,126 @@ function DeviceLens({
 }) {
   const { camera } = useThree();
   const target = useRef(new THREE.Quaternion());
-  const current = useRef(new THREE.Quaternion());
+  const smooth = useRef(new THREE.Quaternion());
 
   useFrame(() => {
     if (!enabled) return;
-    const useGyro = orientation.alpha !== 0 || orientation.beta !== 0;
+    const useGyro = Math.abs(orientation.alpha) > 0.1 || Math.abs(orientation.beta) > 0.1;
     const yaw = useGyro ? orientation.alpha : mouseFallback.x;
     const pitch = useGyro ? orientation.beta - 90 : mouseFallback.y;
-    const roll = useGyro ? -orientation.gamma * 0.25 : 0;
 
     const euler = new THREE.Euler(
-      THREE.MathUtils.degToRad(pitch * 0.45),
+      THREE.MathUtils.degToRad(pitch * 0.55),
       THREE.MathUtils.degToRad(yaw),
-      THREE.MathUtils.degToRad(roll),
+      THREE.MathUtils.degToRad(-orientation.gamma * 0.15),
       'YXZ',
     );
     target.current.setFromEuler(euler);
-    current.current.slerp(target.current, 0.1);
-    camera.quaternion.copy(current.current);
+    smooth.current.slerp(target.current, 0.06);
+    camera.quaternion.copy(smooth.current);
     spatialAudio.updateListener(yaw, pitch);
   });
 
   return null;
 }
 
-function ExpansionSpace({
-  imageUrl,
-  analysis,
-  expansion,
-  style,
-}: LivingCanvasProps) {
+function ImmersiveSphere({
+  equirectTex,
+  spill,
+  tint,
+}: {
+  equirectTex: THREE.Texture;
+  spill: number;
+  tint: string;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  useFrame(() => {
+    if (meshRef.current) {
+      const mat = meshRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.2 + spill * 0.95;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef}>
+      <sphereGeometry args={[48, 72, 48]} />
+      <meshBasicMaterial
+        map={equirectTex}
+        side={THREE.BackSide}
+        transparent
+        opacity={0.2}
+        color={new THREE.Color(tint)}
+        toneMapped
+      />
+    </mesh>
+  );
+}
+
+function PortalFrame({
+  coreTex,
+  spill,
+}: {
+  coreTex: THREE.Texture;
+  spill: number;
+}) {
+  const frameRef = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    if (frameRef.current) {
+      const s = Math.max(0.15, 1 - spill * 0.85);
+      frameRef.current.scale.setScalar(s);
+      frameRef.current.visible = spill < 0.98;
+    }
+  });
+
+  return (
+    <group ref={frameRef} position={[0, 0, -2.8]}>
+      <mesh>
+        <planeGeometry args={[3.4, 2.55]} />
+        <meshStandardMaterial
+          map={coreTex}
+          emissive="#ffffff"
+          emissiveIntensity={0.08 * spill}
+          roughness={0.9}
+          metalness={0}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh position={[0, 0, -0.02]}>
+        <planeGeometry args={[3.65, 2.8]} />
+        <meshStandardMaterial color="#1a1510" roughness={0.6} metalness={0.3} />
+      </mesh>
+      <mesh position={[0, 0, 0.01]}>
+        <planeGeometry args={[3.75, 2.9]} />
+        <meshBasicMaterial color="#c9a962" wireframe transparent opacity={0.35} />
+      </mesh>
+    </group>
+  );
+}
+
+function ExpansionSpace({ imageUrl, analysis, expansion, style }: LivingCanvasProps) {
   const coreTex = useTexture(imageUrl);
-  const panoTex = useTexture(expansion.panoramaUrl);
-  const backTex = useTexture(expansion.backUrl);
-  const leftTex = useTexture(expansion.leftStripUrl);
-  const rightTex = useTexture(expansion.rightStripUrl);
+  const equirectTex = useTexture(expansion.equirectUrl);
 
   const unleashed = useAppStore((s) => s.enteredWorld);
   const audioEnabled = useAppStore((s) => s.audioEnabled);
   const expansionPct = useAppStore((s) => s.expansionProgress) / 100;
   const setExpansionProgress = useAppStore((s) => s.setExpansionProgress);
   const spillT = useRef(0);
-  const groupRef = useRef<THREE.Group>(null);
 
   const uniforms = styleUniforms[style];
-  const textures = [coreTex, panoTex, backTex, leftTex, rightTex];
+  const spill = expansionPct;
 
   useEffect(() => {
-    textures.forEach((t) => {
+    [coreTex, equirectTex].forEach((t) => {
       t.colorSpace = THREE.SRGBColorSpace;
+      t.minFilter = THREE.LinearMipmapLinearFilter;
+      t.magFilter = THREE.LinearFilter;
+      t.anisotropy = 16;
+      t.generateMipmaps = true;
     });
-  }, [textures]);
+  }, [coreTex, equirectTex]);
 
   useEffect(() => {
     if (!audioEnabled || !unleashed) return;
@@ -89,105 +160,83 @@ function ExpansionSpace({
 
   useFrame((_, delta) => {
     if (unleashed && spillT.current < 1) {
-      spillT.current = Math.min(1, spillT.current + delta * 0.28);
+      spillT.current = Math.min(1, spillT.current + delta * 0.22);
       setExpansionProgress(Math.round(spillT.current * 100));
-    }
-    if (groupRef.current) {
-      const s = 0.35 + spillT.current * 0.65;
-      groupRef.current.scale.setScalar(s);
     }
   });
 
-  const planes = analysis.depthPlanes;
-  const spill = expansionPct;
+  const layerRadii = useMemo(
+    () => analysis.depthPlanes.map((p) => 3.5 + p.depth * 9),
+    [analysis.depthPlanes],
+  );
 
   return (
     <>
-      <color attach="background" args={[analysis.palette.sky]} />
-      <fog attach="fog" args={[analysis.palette.sky, 8, 32]} />
-      <ambientLight intensity={0.35} color={analysis.palette.secondary} />
+      <fog attach="fog" args={[analysis.palette.sky, 14, 55]} />
+      <ambientLight intensity={0.28} color={analysis.palette.secondary} />
       <directionalLight
-        position={[5, 8, 3]}
-        intensity={analysis.brightness * 1.5}
+        position={[6, 10, 4]}
+        intensity={analysis.brightness * 1.4}
         color={analysis.palette.accent}
       />
+      <pointLight
+        position={[0, 2, -2]}
+        intensity={0.6 * spill}
+        color={analysis.palette.accent}
+        distance={20}
+      />
+      <hemisphereLight
+        args={[analysis.palette.sky, analysis.palette.ground, 0.35 * spill]}
+      />
 
-      <group ref={groupRef}>
-        {/* Central frame — the physical painting */}
-        <mesh position={[0, 0, -3]}>
-          <planeGeometry args={[3.2, 2.4]} />
-          <meshBasicMaterial map={coreTex} toneMapped={false} />
-        </mesh>
+      <ImmersiveSphere equirectTex={equirectTex} spill={spill} tint={uniforms.tint} />
 
-        {/* Panorama cylinder — extended world spills around user */}
-        <mesh rotation={[0, Math.PI, 0]}>
-          <cylinderGeometry args={[8 + spill * 6, 8 + spill * 6, 6, 48, 1, true]} />
-          <meshBasicMaterial
-            map={panoTex}
-            side={THREE.BackSide}
+      {analysis.depthPlanes.map((plane, i) => (
+        <DepthBillboard
+          key={plane.id}
+          plane={plane}
+          texture={coreTex}
+          radius={layerRadii[i]}
+          spill={spill}
+          tint={uniforms.tint}
+          opacityMul={uniforms.opacityMul}
+          parallax={1 - plane.depth}
+        />
+      ))}
+
+      <PortalFrame coreTex={coreTex} spill={spill} />
+
+      {analysis.isNight && (
+        <Stars radius={60} depth={30} count={5000} factor={4} saturation={0.6} fade speed={0.4} />
+      )}
+
+      <Float speed={0.8} floatIntensity={0.15} rotationIntensity={0.02}>
+        <mesh position={[analysis.hasWater ? -4 : 2, 0.5, -5]}>
+          <sphereGeometry args={[0.25, 16, 16]} />
+          <meshStandardMaterial
+            color={analysis.palette.accent}
+            emissive={analysis.palette.accent}
+            emissiveIntensity={0.8}
             transparent
-            opacity={0.15 + spill * 0.75}
-            color={new THREE.Color(uniforms.tint)}
+            opacity={0.6 * spill}
           />
         </mesh>
-
-        {/* Back of scene — visible when turning 180° */}
-        <mesh position={[0, 0, 6 + spill * 4]} rotation={[0, Math.PI, 0]}>
-          <planeGeometry args={[14, 8]} />
-          <meshBasicMaterial
-            map={backTex}
-            transparent
-            opacity={spill * 0.85}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
-
-        {/* Side extrapolations */}
-        <mesh position={[-5 - spill * 3, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <planeGeometry args={[6, 4]} />
-          <meshBasicMaterial map={leftTex} transparent opacity={spill * 0.7} side={THREE.DoubleSide} />
-        </mesh>
-        <mesh position={[5 + spill * 3, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
-          <planeGeometry args={[6, 4]} />
-          <meshBasicMaterial map={rightTex} transparent opacity={spill * 0.7} side={THREE.DoubleSide} />
-        </mesh>
-
-        {/* Volumetric depth layers — diorama planes */}
-        {planes.map((plane) => {
-          const r = 2.5 + plane.depth * (4 + spill * 6);
-          return (
-            <mesh
-              key={plane.id}
-              position={[0, plane.offsetY, -r]}
-              scale={[plane.scale * 4, plane.scale * 2.8, 1]}
-            >
-              <planeGeometry />
-              <meshBasicMaterial
-                map={coreTex}
-                transparent
-                opacity={plane.opacity * spill * uniforms.opacityMul}
-                side={THREE.DoubleSide}
-                color={new THREE.Color(uniforms.tint)}
-              />
-            </mesh>
-          );
-        })}
-      </group>
+      </Float>
 
       <Sparkles
-        count={80}
-        scale={18}
-        size={analysis.medium === 'oil' ? 2.5 : 1.5}
-        speed={0.25}
-        opacity={0.4 * spill}
+        count={100}
+        scale={22}
+        size={analysis.medium === 'oil' ? 2 : 1.2}
+        speed={0.2}
+        opacity={0.35 * spill}
         color={analysis.palette.accent}
       />
       <ArtisticDust analysis={analysis} expansion={spill} />
       <WeatherLayer weather={analysis.weather} color={analysis.palette.accent} />
 
       <EffectComposer>
-        <Bloom luminanceThreshold={0.55} intensity={uniforms.bloom * (0.5 + spill * 0.5)} />
-        <Vignette offset={0.25} darkness={0.5} />
+        <Bloom luminanceThreshold={0.5} luminanceSmoothing={0.85} intensity={uniforms.bloom * spill * 0.6} mipmapBlur />
+        <Vignette eskil={false} offset={0.15} darkness={0.45} />
       </EffectComposer>
     </>
   );
@@ -203,26 +252,27 @@ function SceneRoot(props: LivingCanvasProps) {
 
   return (
     <>
+      <color attach="background" args={['#050508']} />
       <ExpansionSpace {...props} />
-      <DeviceLens
-        enabled={unleashed}
-        orientation={orientation}
-        mouseFallback={mouseFallback}
-      />
+      <DeviceLens enabled={unleashed} orientation={orientation} mouseFallback={mouseFallback} />
     </>
   );
 }
 
 export function LivingCanvas(props: LivingCanvasProps) {
   return (
-    <Canvas
-      camera={{ fov: 70, near: 0.1, far: 80, position: [0, 0, 0] }}
-      gl={{ antialias: true, alpha: false }}
-      style={{ width: '100%', height: '100%' }}
-    >
-      <Suspense fallback={null}>
-        <SceneRoot {...props} />
-      </Suspense>
-    </Canvas>
+    <div className="canvas-shell">
+      <div className="canvas-vignette" aria-hidden />
+      <Canvas
+        camera={{ fov: 75, near: 0.05, far: 100, position: [0, 0, 0.01] }}
+        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
+        dpr={[1, 2]}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <Suspense fallback={null}>
+          <SceneRoot {...props} />
+        </Suspense>
+      </Canvas>
+    </div>
   );
 }
