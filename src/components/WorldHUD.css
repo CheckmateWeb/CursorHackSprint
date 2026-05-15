@@ -24,6 +24,14 @@
   margin-bottom: 0.75rem;
 }
 
+.hud-era {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-bottom: 0.75rem;
+}
+
 .hud-enter-narration {
   font-family: var(--serif);
   font-style: italic;

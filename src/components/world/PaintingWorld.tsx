@@ -161,7 +161,11 @@ function SceneContent({ imageUrl, analysis, style }: PaintingWorldProps) {
         <Bloom luminanceThreshold={0.6} intensity={uniforms.bloom} />
         <Vignette offset={0.3} darkness={0.65} />
         {style === 'cyberpunk' ? (
-          <ChromaticAberration offset={new THREE.Vector2(0.002, 0.002)} />
+          <ChromaticAberration
+            offset={new THREE.Vector2(0.002, 0.002)}
+            radialModulation={false}
+            modulationOffset={0}
+          />
         ) : (
           <></>
         )}

@@ -1,6 +1,6 @@
 import type { ArtStyle } from '@/lib/types';
 import { useAppStore } from '@/store/useAppStore';
-import { audioEngine } from '@/lib/audioEngine';
+import { spatialAudio } from '@/lib/spatialAudio';
 import './WorldHUD.css';
 
 const STYLES: { id: ArtStyle; label: string }[] = [
@@ -22,31 +22,37 @@ export function WorldHUD() {
   const setNarrationEnabled = useAppStore((s) => s.setNarrationEnabled);
   const audioEnabled = useAppStore((s) => s.audioEnabled);
   const setAudioEnabled = useAppStore((s) => s.setAudioEnabled);
-  const enteredWorld = useAppStore((s) => s.enteredWorld);
-  const setEnteredWorld = useAppStore((s) => s.setEnteredWorld);
+  const unleashed = useAppStore((s) => s.enteredWorld);
+  const setUnleashed = useAppStore((s) => s.setEnteredWorld);
+  const expansionProgress = useAppStore((s) => s.expansionProgress);
   const reset = useAppStore((s) => s.reset);
 
   const toggleAudio = () => {
     const next = !audioEnabled;
     setAudioEnabled(next);
-    if (!next) audioEngine.stop();
-    else if (analysis && enteredWorld) {
-      void audioEngine.init().then(() => audioEngine.start(analysis));
+    if (!next) spatialAudio.stop();
+    else if (analysis && unleashed) {
+      void spatialAudio.init().then(() => spatialAudio.start(analysis));
     }
   };
 
-  if (!enteredWorld) {
+  if (!unleashed) {
     return (
       <div className="hud-enter">
         <div className="hud-enter-panel">
           <h2>{analysis?.title}</h2>
+          <p className="hud-era">{analysis?.artisticEra}</p>
           <p className="hud-enter-narration">
-            {narrationEnabled ? analysis?.narration : 'Click to step inside the painting.'}
+            {narrationEnabled
+              ? analysis?.narration
+              : 'The artwork will expand beyond its frame into the space around you.'}
           </p>
-          <button type="button" className="btn-enter" onClick={() => setEnteredWorld(true)}>
-            Step Inside
+          <button type="button" className="btn-enter" onClick={() => setUnleashed(true)}>
+            Unleash the Canvas
           </button>
-          <p className="hud-controls-hint">WASD to walk · Mouse to look · Click glowing orbs</p>
+          <p className="hud-controls-hint">
+            Allow motion access · Turn your device to look around · Drag on desktop
+          </p>
         </div>
       </div>
     );
@@ -56,12 +62,15 @@ export function WorldHUD() {
     <div className="hud">
       <header className="hud-top">
         <div className="hud-title-block">
-          <span className="hud-eyebrow">Now exploring</span>
+          <span className="hud-eyebrow">Spatial expansion</span>
           <h1>{analysis?.title}</h1>
-          <span className="hud-mood">{analysis?.mood}</span>
+          <span className="hud-mood">
+            {analysis?.mood} · {analysis?.medium}
+            {expansionProgress < 100 ? ` · ${expansionProgress}%` : ''}
+          </span>
         </div>
         <button type="button" className="hud-exit" onClick={reset} aria-label="Exit">
-          Exit Gallery
+          Exit
         </button>
       </header>
 
@@ -85,13 +94,13 @@ export function WorldHUD() {
 
         <div className="hud-toggles">
           <button type="button" onClick={() => setCompareMode(!compareMode)}>
-            {compareMode ? 'Hide' : 'Compare'} Original
+            {compareMode ? 'Hide' : 'Show'} Frame
           </button>
           <button type="button" onClick={() => setNarrationEnabled(!narrationEnabled)}>
             Narration {narrationEnabled ? 'On' : 'Off'}
           </button>
           <button type="button" onClick={toggleAudio}>
-            Sound {audioEnabled ? 'On' : 'Off'}
+            Spatial Audio {audioEnabled ? 'On' : 'Off'}
           </button>
         </div>
       </footer>

@@ -1,0 +1,16 @@
+.room-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 45%, color-mix(in srgb, var(--glow-a) 55%, transparent), transparent 65%),
+    radial-gradient(ellipse 60% 50% at 20% 80%, color-mix(in srgb, var(--glow-b) 35%, transparent), transparent 70%);
+  mix-blend-mode: screen;
+  animation: glow-pulse ease-in-out infinite alternate;
+}
+
+@keyframes glow-pulse {
+  from { filter: brightness(0.9); }
+  to { filter: brightness(1.15); }
+}

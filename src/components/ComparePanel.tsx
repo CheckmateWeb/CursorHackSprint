@@ -10,7 +10,7 @@ export function ComparePanel() {
   return (
     <div className="compare-panel">
       <img src={imageUrl} alt="Original artwork" />
-      <span className="compare-label">Original Canvas</span>
+      <span className="compare-label">Physical Frame</span>
     </div>
   );
 }
