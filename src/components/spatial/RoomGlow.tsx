@@ -11,7 +11,7 @@ export function RoomGlow() {
   const warmth = analysis.warmth;
   const color = analysis.palette.accent;
   const secondary = analysis.palette.dominant;
-  const intensity = 0.15 + (progress / 100) * 0.35;
+  const intensity = 0.04 + (progress / 100) * 0.1;
 
   return (
     <div

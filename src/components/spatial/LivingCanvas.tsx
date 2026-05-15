@@ -1,17 +1,20 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Float, Sparkles, Stars, useTexture } from '@react-three/drei';
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+import { Suspense, useEffect, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Sparkles, Stars, useTexture } from '@react-three/drei';
+import { EffectComposer, Bloom, Vignette, BrightnessContrast } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import type { ArtStyle, ExpansionTextures, SceneAnalysis } from '@/lib/types';
-import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 import { spatialAudio } from '@/lib/spatialAudio';
 import { useAppStore } from '@/store/useAppStore';
 import { styleUniforms } from '@/components/world/styleShaders';
 import { WeatherLayer } from '@/components/world/WeatherLayer';
 import { ArtisticDust } from './ArtisticDust';
-import { DepthBillboard } from './DepthBillboard';
+import { PaintingHotspot } from './PaintingHotspot';
 import './canvas-shell.css';
+
+const PAINTING_W = 3.6;
+const PAINTING_H = 2.7;
+const PAINTING_Z = -4.2;
 
 interface LivingCanvasProps {
   imageUrl: string;
@@ -20,41 +23,8 @@ interface LivingCanvasProps {
   style: ArtStyle;
 }
 
-function DeviceLens({
-  enabled,
-  orientation,
-  mouseFallback,
-}: {
-  enabled: boolean;
-  orientation: { alpha: number; beta: number; gamma: number };
-  mouseFallback: { x: number; y: number };
-}) {
-  const { camera } = useThree();
-  const target = useRef(new THREE.Quaternion());
-  const smooth = useRef(new THREE.Quaternion());
-
-  useFrame(() => {
-    if (!enabled) return;
-    const useGyro = Math.abs(orientation.alpha) > 0.1 || Math.abs(orientation.beta) > 0.1;
-    const yaw = useGyro ? orientation.alpha : mouseFallback.x;
-    const pitch = useGyro ? orientation.beta - 90 : mouseFallback.y;
-
-    const euler = new THREE.Euler(
-      THREE.MathUtils.degToRad(pitch * 0.55),
-      THREE.MathUtils.degToRad(yaw),
-      THREE.MathUtils.degToRad(-orientation.gamma * 0.15),
-      'YXZ',
-    );
-    target.current.setFromEuler(euler);
-    smooth.current.slerp(target.current, 0.06);
-    camera.quaternion.copy(smooth.current);
-    spatialAudio.updateListener(yaw, pitch);
-  });
-
-  return null;
-}
-
-function ImmersiveSphere({
+/** Environment sphere — slow drift only, painting stays fixed */
+function EnvironmentSphere({
   equirectTex,
   spill,
   tint,
@@ -63,68 +33,75 @@ function ImmersiveSphere({
   spill: number;
   tint: string;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const ref = useRef<THREE.Mesh>(null);
 
-  useFrame(() => {
-    if (meshRef.current) {
-      const mat = meshRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = 0.2 + spill * 0.95;
+  useFrame((_, delta) => {
+    if (ref.current) {
+      ref.current.rotation.y += delta * 0.015 * spill;
     }
   });
 
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[48, 72, 48]} />
+    <mesh ref={ref}>
+      <sphereGeometry args={[55, 64, 48]} />
       <meshBasicMaterial
         map={equirectTex}
         side={THREE.BackSide}
-        transparent
-        opacity={0.2}
         color={new THREE.Color(tint)}
+        transparent
+        opacity={0.35 + spill * 0.65}
         toneMapped
       />
     </mesh>
   );
 }
 
-function PortalFrame({
+/** Fixed painting on the wall — gentle breathing motion only */
+function AnchoredPainting({
   coreTex,
-  spill,
+  analysis,
+  unleashed,
 }: {
   coreTex: THREE.Texture;
-  spill: number;
+  analysis: SceneAnalysis;
+  unleashed: boolean;
 }) {
-  const frameRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<THREE.Group>(null);
 
-  useFrame(() => {
-    if (frameRef.current) {
-      const s = Math.max(0.15, 1 - spill * 0.85);
-      frameRef.current.scale.setScalar(s);
-      frameRef.current.visible = spill < 0.98;
-    }
+  useFrame((state) => {
+    if (!groupRef.current || !unleashed) return;
+    const breathe = 1 + Math.sin(state.clock.elapsedTime * 0.45) * 0.006;
+    groupRef.current.scale.set(breathe, breathe, 1);
   });
 
   return (
-    <group ref={frameRef} position={[0, 0, -2.8]}>
-      <mesh>
-        <planeGeometry args={[3.4, 2.55]} />
-        <meshStandardMaterial
-          map={coreTex}
-          emissive="#ffffff"
-          emissiveIntensity={0.08 * spill}
-          roughness={0.9}
-          metalness={0}
-          toneMapped={false}
-        />
+    <group ref={groupRef} position={[0, 0, PAINTING_Z]}>
+      {/* Museum frame */}
+      <mesh position={[0, 0, -0.04]}>
+        <planeGeometry args={[PAINTING_W + 0.35, PAINTING_H + 0.35]} />
+        <meshStandardMaterial color="#1c1814" roughness={0.7} metalness={0.2} />
       </mesh>
       <mesh position={[0, 0, -0.02]}>
-        <planeGeometry args={[3.65, 2.8]} />
-        <meshStandardMaterial color="#1a1510" roughness={0.6} metalness={0.3} />
+        <planeGeometry args={[PAINTING_W + 0.12, PAINTING_H + 0.12]} />
+        <meshBasicMaterial color="#3d3428" />
       </mesh>
-      <mesh position={[0, 0, 0.01]}>
-        <planeGeometry args={[3.75, 2.9]} />
-        <meshBasicMaterial color="#c9a962" wireframe transparent opacity={0.35} />
+
+      {/* The artwork — fixed center */}
+      <mesh position={[0, 0, 0]}>
+        <planeGeometry args={[PAINTING_W, PAINTING_H]} />
+        <meshBasicMaterial map={coreTex} toneMapped />
       </mesh>
+
+      {unleashed &&
+        analysis.objects.slice(0, 6).map((obj) => (
+          <PaintingHotspot
+            key={obj.id}
+            object={obj}
+            analysis={analysis}
+            paintingW={PAINTING_W}
+            paintingH={PAINTING_H}
+          />
+        ))}
     </group>
   );
 }
@@ -160,101 +137,85 @@ function ExpansionSpace({ imageUrl, analysis, expansion, style }: LivingCanvasPr
 
   useFrame((_, delta) => {
     if (unleashed && spillT.current < 1) {
-      spillT.current = Math.min(1, spillT.current + delta * 0.22);
+      spillT.current = Math.min(1, spillT.current + delta * 0.2);
       setExpansionProgress(Math.round(spillT.current * 100));
     }
   });
 
-  const layerRadii = useMemo(
-    () => analysis.depthPlanes.map((p) => 3.5 + p.depth * 9),
-    [analysis.depthPlanes],
-  );
-
   return (
     <>
-      <fog attach="fog" args={[analysis.palette.sky, 14, 55]} />
-      <ambientLight intensity={0.28} color={analysis.palette.secondary} />
+      <fog attach="fog" args={[analysis.palette.sky, 20, 65]} />
+      <ambientLight intensity={0.14} color={analysis.palette.secondary} />
       <directionalLight
-        position={[6, 10, 4]}
-        intensity={analysis.brightness * 1.4}
+        position={[4, 6, 2]}
+        intensity={0.3 + analysis.brightness * 0.2}
         color={analysis.palette.accent}
       />
-      <pointLight
-        position={[0, 2, -2]}
-        intensity={0.6 * spill}
-        color={analysis.palette.accent}
-        distance={20}
-      />
-      <hemisphereLight
-        args={[analysis.palette.sky, analysis.palette.ground, 0.35 * spill]}
-      />
 
-      <ImmersiveSphere equirectTex={equirectTex} spill={spill} tint={uniforms.tint} />
+      <EnvironmentSphere equirectTex={equirectTex} spill={spill} tint={uniforms.tint} />
 
-      {analysis.depthPlanes.map((plane, i) => (
-        <DepthBillboard
-          key={plane.id}
-          plane={plane}
-          texture={coreTex}
-          radius={layerRadii[i]}
-          spill={spill}
-          tint={uniforms.tint}
-          opacityMul={uniforms.opacityMul}
-          parallax={1 - plane.depth}
-        />
-      ))}
+      <AnchoredPainting coreTex={coreTex} analysis={analysis} unleashed={unleashed} />
 
-      <PortalFrame coreTex={coreTex} spill={spill} />
-
-      {analysis.isNight && (
-        <Stars radius={60} depth={30} count={5000} factor={4} saturation={0.6} fade speed={0.4} />
+      {unleashed && analysis.isNight && spill > 0.5 && (
+        <Stars radius={80} depth={50} count={1500} factor={1.5} saturation={0.35} fade speed={0.2} />
       )}
 
-      <Float speed={0.8} floatIntensity={0.15} rotationIntensity={0.02}>
-        <mesh position={[analysis.hasWater ? -4 : 2, 0.5, -5]}>
-          <sphereGeometry args={[0.25, 16, 16]} />
-          <meshStandardMaterial
+      {unleashed && spill > 0.5 && (
+        <>
+          <Sparkles
+            count={28}
+            position={[0, 0, PAINTING_Z - 1]}
+            scale={8}
+            size={0.6}
+            speed={0.12}
+            opacity={0.15}
             color={analysis.palette.accent}
-            emissive={analysis.palette.accent}
-            emissiveIntensity={0.8}
-            transparent
-            opacity={0.6 * spill}
           />
-        </mesh>
-      </Float>
+          <ArtisticDust analysis={analysis} expansion={spill * 0.4} />
+        </>
+      )}
 
-      <Sparkles
-        count={100}
-        scale={22}
-        size={analysis.medium === 'oil' ? 2 : 1.2}
-        speed={0.2}
-        opacity={0.35 * spill}
-        color={analysis.palette.accent}
+      {unleashed && spill > 0.75 && analysis.weather !== 'clear' && (
+        <WeatherLayer weather={analysis.weather} color={analysis.palette.accent} />
+      )}
+
+      <OrbitControls
+        makeDefault
+        enabled={unleashed}
+        target={[0, 0, PAINTING_Z]}
+        enablePan={false}
+        enableZoom={true}
+        minDistance={2.8}
+        maxDistance={5.5}
+        minAzimuthAngle={-0.85}
+        maxAzimuthAngle={0.85}
+        minPolarAngle={Math.PI / 2 - 0.55}
+        maxPolarAngle={Math.PI / 2 + 0.55}
+        rotateSpeed={0.35}
+        zoomSpeed={0.4}
+        dampingFactor={0.06}
+        enableDamping
       />
-      <ArtisticDust analysis={analysis} expansion={spill} />
-      <WeatherLayer weather={analysis.weather} color={analysis.palette.accent} />
 
       <EffectComposer>
-        <Bloom luminanceThreshold={0.5} luminanceSmoothing={0.85} intensity={uniforms.bloom * spill * 0.6} mipmapBlur />
-        <Vignette eskil={false} offset={0.15} darkness={0.45} />
+        <BrightnessContrast brightness={0.02} contrast={0.06} />
+        <Bloom
+          luminanceThreshold={0.92}
+          luminanceSmoothing={0.4}
+          intensity={0.08 + uniforms.bloom * 0.1}
+          mipmapBlur
+        />
+        <Vignette eskil={false} offset={0.12} darkness={0.7} />
       </EffectComposer>
     </>
   );
 }
 
 function SceneRoot(props: LivingCanvasProps) {
-  const unleashed = useAppStore((s) => s.enteredWorld);
-  const { orientation, mouseFallback, requestPermission } = useDeviceOrientation(unleashed);
-
-  useEffect(() => {
-    if (unleashed) void requestPermission();
-  }, [unleashed, requestPermission]);
-
   return (
     <>
       <color attach="background" args={['#050508']} />
       <ExpansionSpace {...props} />
-      <DeviceLens enabled={unleashed} orientation={orientation} mouseFallback={mouseFallback} />
     </>
   );
 }
@@ -264,9 +225,20 @@ export function LivingCanvas(props: LivingCanvasProps) {
     <div className="canvas-shell">
       <div className="canvas-vignette" aria-hidden />
       <Canvas
-        camera={{ fov: 75, near: 0.05, far: 100, position: [0, 0, 0.01] }}
-        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
-        dpr={[1, 2]}
+        camera={{
+          fov: 55,
+          near: 0.1,
+          far: 100,
+          position: [0, 0.2, 0.5],
+        }}
+        gl={{
+          antialias: true,
+          alpha: false,
+          powerPreference: 'high-performance',
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 0.78,
+        }}
+        dpr={[1, 1.5]}
         style={{ width: '100%', height: '100%' }}
       >
         <Suspense fallback={null}>

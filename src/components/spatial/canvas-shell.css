@@ -12,9 +12,23 @@
   pointer-events: none;
   z-index: 2;
   background: radial-gradient(
-    ellipse 75% 65% at 50% 48%,
-    transparent 35%,
-    rgba(5, 5, 8, 0.45) 75%,
-    rgba(5, 5, 8, 0.85) 100%
+    ellipse 70% 60% at 50% 50%,
+    transparent 25%,
+    rgba(5, 5, 8, 0.55) 70%,
+    rgba(5, 5, 8, 0.92) 100%
   );
+}
+
+.hotspot-memory {
+  max-width: 220px;
+  padding: 0.6rem 0.9rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--cream);
+  background: rgba(10, 9, 8, 0.88);
+  border: 1px solid rgba(201, 169, 98, 0.35);
+  text-align: center;
+  white-space: normal;
+  line-height: 1.45;
 }

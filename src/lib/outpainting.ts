@@ -15,7 +15,7 @@ export async function synthesizeExpansion(
   onProgress?: (p: ExpansionProgress) => void,
 ): Promise<ExpansionTextures & { mode: 'ai' | 'local' }> {
   const img = await loadImage(imageUrl);
-  const maxW = 1200;
+  const maxW = 1600;
   const scale = Math.min(1, maxW / Math.max(img.width, img.height));
   const cw = Math.floor(img.width * scale);
   const ch = Math.floor(img.height * scale);
@@ -64,7 +64,7 @@ export async function synthesizeExpansion(
 
   return {
     mode,
-    equirectUrl: equirect.toDataURL('image/jpeg', 0.92),
+    equirectUrl: equirect.toDataURL('image/jpeg', 0.95),
     panoramaUrl: panorama.toDataURL('image/jpeg', 0.92),
     backUrl: back.toDataURL('image/jpeg', 0.88),
     leftStripUrl: leftStrip.toDataURL('image/jpeg', 0.85),
@@ -97,17 +97,45 @@ function createWideCanvasWithPatches(source: HTMLCanvasElement, analysis: SceneA
     h: sh,
   });
 
-  addSwirlStrokes(ctx, canvas.width, sh, analysis.palette.accent, analysis.warmth * 1.1);
+  softenExtensionBands(ctx, ext, ext + sw, canvas.width, sh);
+  addSwirlStrokes(ctx, canvas.width, sh, analysis.palette.accent, analysis.warmth * 0.65);
   if (analysis.medium === 'watercolor') addWatercolorBleed(ctx, canvas.width, sh, analysis.palette.accent);
 
-  ctx.globalCompositeOperation = 'soft-light';
-  ctx.fillStyle = analysis.palette.dominant;
-  ctx.globalAlpha = 0.06;
-  ctx.fillRect(0, 0, canvas.width, sh);
-  ctx.globalAlpha = 1;
-  ctx.globalCompositeOperation = 'source-over';
-
   return canvas;
+}
+
+/** Blur extension zones so patches blend smoothly (no blocky pixels) */
+function softenExtensionBands(
+  ctx: CanvasRenderingContext2D,
+  leftWidth: number,
+  rightStart: number,
+  w: number,
+  h: number,
+): void {
+  const full = document.createElement('canvas');
+  full.width = w;
+  full.height = h;
+  full.getContext('2d')!.drawImage(ctx.canvas, 0, 0);
+
+  const blendBand = (x: number, bw: number) => {
+    if (bw <= 0) return;
+    const slice = document.createElement('canvas');
+    slice.width = bw;
+    slice.height = h;
+    const s = slice.getContext('2d')!;
+    s.drawImage(full, x, 0, bw, h, 0, 0, bw, h);
+    const blurred = document.createElement('canvas');
+    blurred.width = bw;
+    blurred.height = h;
+    const bl = blurred.getContext('2d')!;
+    bl.filter = 'blur(12px) saturate(1.08)';
+    bl.drawImage(slice, 0, 0);
+    bl.filter = 'none';
+    ctx.drawImage(blurred, x, 0, bw, h);
+  };
+
+  blendBand(0, leftWidth);
+  blendBand(rightStart, w - rightStart);
 }
 
 function patchFill(
@@ -119,15 +147,17 @@ function patchFill(
   dh: number,
   sample: { x: number; y: number; w: number; h: number },
 ): void {
-  const patch = 28;
-  for (let y = 0; y < dh; y += Math.floor(patch * 0.65)) {
-    for (let x = 0; x < dw; x += Math.floor(patch * 0.65)) {
+  const patch = 14;
+  const step = 10;
+  for (let y = 0; y < dh; y += step) {
+    for (let x = 0; x < dw; x += step) {
       const sx = sample.x + Math.floor(Math.random() * Math.max(1, sample.w - patch));
       const sy = sample.y + Math.floor(Math.random() * Math.max(1, sample.h - patch));
-      const pw = patch + Math.floor(Math.random() * 12);
-      const ph = patch + Math.floor(Math.random() * 12);
-      dest.globalAlpha = 0.25 + Math.random() * 0.35;
-      dest.drawImage(source, sx, sy, pw, ph, dx + x, dy + y, pw, ph);
+      const pw = patch + Math.floor(Math.random() * 6);
+      const ph = patch + Math.floor(Math.random() * 6);
+      const fade = 1 - x / dw;
+      dest.globalAlpha = (0.12 + Math.random() * 0.18) * (0.5 + fade * 0.5);
+      dest.drawImage(source, sx, sy, pw, ph, dx + x, dy + y, pw + 4, ph + 4);
     }
   }
   dest.globalAlpha = 1;

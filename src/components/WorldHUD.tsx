@@ -51,7 +51,7 @@ export function WorldHUD() {
             Unleash the Canvas
           </button>
           <p className="hud-controls-hint">
-            Allow motion access · Turn your device to look around · Drag on desktop
+            Drag to look around the room · Tap glowing points on the painting
           </p>
         </div>
       </div>
@@ -76,6 +76,10 @@ export function WorldHUD() {
 
       {narrationEnabled && analysis && (
         <aside className="hud-narration">{analysis.narration}</aside>
+      )}
+
+      {unleashed && (
+        <p className="hud-interact-hint">Click the glowing orbs on the artwork</p>
       )}
 
       <footer className="hud-bottom">

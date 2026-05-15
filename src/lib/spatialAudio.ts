@@ -148,6 +148,27 @@ export class SpatialAudioEngine {
     this.running = false;
   }
 
+  playSpatialChime(x: number, y: number): void {
+    if (!this.ctx || !this.master) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const panner = this.ctx.createPanner();
+    panner.panningModel = 'HRTF';
+    panner.positionX.value = (x - 0.5) * 6;
+    panner.positionY.value = (0.5 - y) * 3;
+    panner.positionZ.value = -4;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440 + y * 220, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880 + x * 120, this.ctx.currentTime + 0.35);
+    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.6);
+    osc.connect(gain);
+    gain.connect(panner);
+    panner.connect(this.master);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.65);
+  }
+
   async resume(): Promise<void> {
     await this.ctx?.resume();
   }
