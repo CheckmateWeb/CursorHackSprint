@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { analyzePainting, simulateAnalysisProgress } from '@/lib/imageAnalysis';
+import { identifyArtwork } from '@/lib/artIdentification';
 import { synthesizeExpansion } from '@/lib/outpainting';
 import { canUseAI } from '@/lib/aiOutpaint';
+import { ArtworkInfoPanel } from '@/components/ArtworkInfoPanel';
 import { useAppStore } from '@/store/useAppStore';
 import './AnalyzingOverlay.css';
 
 const STEPS = [
+  'Identifying artwork and artist…',
   'Scanning the frame and reading pigment…',
   'Mapping depth planes for volumetric layers…',
   'Generating extended painting detail…',
@@ -15,8 +18,12 @@ const STEPS = [
 
 export function AnalyzingOverlay() {
   const imageUrl = useAppStore((s) => s.imageUrl);
+  const sampleId = useAppStore((s) => s.sampleId);
+  const artwork = useAppStore((s) => s.artwork);
   const progress = useAppStore((s) => s.analysisProgress);
   const setAnalysis = useAppStore((s) => s.setAnalysis);
+  const setArtwork = useAppStore((s) => s.setArtwork);
+  const recordArtworkHistory = useAppStore((s) => s.recordArtworkHistory);
   const setExpansion = useAppStore((s) => s.setExpansion);
   const setProgress = useAppStore((s) => s.setAnalysisProgress);
   const setPhase = useAppStore((s) => s.setPhase);
@@ -33,6 +40,16 @@ export function AnalyzingOverlay() {
       const analysis = await analyzePainting(imageUrl);
       if (cancelled) return;
       setAnalysis(analysis);
+
+      const identification = await identifyArtwork({
+        imageUrl,
+        analysis,
+        sampleId,
+        onStatus: setStatus,
+      });
+      if (cancelled) return;
+      setArtwork(identification);
+      recordArtworkHistory(identification);
 
       const expansion = await synthesizeExpansion(imageUrl, analysis, (p) => {
         if (!cancelled) setStatus(p.stage);
@@ -52,7 +69,7 @@ export function AnalyzingOverlay() {
     return () => {
       cancelled = true;
     };
-  }, [imageUrl, setAnalysis, setExpansion, setProgress, setPhase]);
+  }, [imageUrl, sampleId, setAnalysis, setArtwork, recordArtworkHistory, setExpansion, setProgress, setPhase]);
 
   return (
     <div className="analyzing">
@@ -73,6 +90,11 @@ export function AnalyzingOverlay() {
           <div className="analyzing-bar-fill" style={{ width: `${progress}%` }} />
         </div>
         <span className="analyzing-pct">{progress}%</span>
+        {artwork && (
+          <div className="analyzing-ident">
+            <ArtworkInfoPanel artwork={artwork} compact />
+          </div>
+        )}
       </div>
     </div>
   );

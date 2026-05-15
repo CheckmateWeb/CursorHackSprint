@@ -1,4 +1,5 @@
 import type { ArtStyle } from '@/lib/types';
+import { ArtworkInfoPanel } from '@/components/ArtworkInfoPanel';
 import { useAppStore } from '@/store/useAppStore';
 import { spatialAudio } from '@/lib/spatialAudio';
 import './WorldHUD.css';
@@ -14,6 +15,7 @@ const STYLES: { id: ArtStyle; label: string }[] = [
 
 export function WorldHUD() {
   const analysis = useAppStore((s) => s.analysis);
+  const artwork = useAppStore((s) => s.artwork);
   const style = useAppStore((s) => s.style);
   const setStyle = useAppStore((s) => s.setStyle);
   const compareMode = useAppStore((s) => s.compareMode);
@@ -40,11 +42,19 @@ export function WorldHUD() {
     return (
       <div className="hud-enter">
         <div className="hud-enter-panel">
-          <h2>{analysis?.title}</h2>
-          <p className="hud-era">{analysis?.artisticEra}</p>
+          <h2>{artwork?.title ?? analysis?.title}</h2>
+          <p className="hud-era">
+            {artwork?.artist ?? analysis?.artisticEra}
+            {artwork?.year ? ` · ${artwork.year}` : ''}
+          </p>
+          {artwork && (
+            <div className="hud-artwork-info">
+              <ArtworkInfoPanel artwork={artwork} />
+            </div>
+          )}
           <p className="hud-enter-narration">
             {narrationEnabled
-              ? analysis?.narration
+              ? artwork?.history ?? analysis?.narration
               : 'The artwork will expand beyond its frame into the space around you.'}
           </p>
           <button type="button" className="btn-enter" onClick={() => setUnleashed(true)}>
@@ -63,9 +73,9 @@ export function WorldHUD() {
       <header className="hud-top">
         <div className="hud-title-block">
           <span className="hud-eyebrow">Spatial expansion</span>
-          <h1>{analysis?.title}</h1>
+          <h1>{artwork?.title ?? analysis?.title}</h1>
           <span className="hud-mood">
-            {analysis?.mood} · {analysis?.medium}
+            {artwork?.artist ?? analysis?.mood} · {artwork?.movement ?? analysis?.medium}
             {expansionProgress < 100 ? ` · ${expansionProgress}%` : ''}
           </span>
         </div>

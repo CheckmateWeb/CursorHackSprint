@@ -96,3 +96,30 @@ export interface SceneConfig {
 }
 
 export type AppPhase = 'landing' | 'analyzing' | 'transition' | 'world' | 'compare';
+
+export type IdentificationSource = 'catalog' | 'sample' | 'ai' | 'heuristic';
+
+/** Museum-style identification for an uploaded or recognized artwork */
+export interface ArtworkIdentification {
+  title: string;
+  artist: string;
+  year?: string;
+  movement?: string;
+  medium?: string;
+  /** Short historical context (2–4 sentences) */
+  history: string;
+  confidence: number;
+  source: IdentificationSource;
+  isKnownMasterpiece: boolean;
+}
+
+/** One entry in the user's local gallery history */
+export interface ArtHistoryEntry {
+  id: string;
+  imageUrl: string;
+  thumbnailUrl: string;
+  identifiedAt: string;
+  identification: ArtworkIdentification;
+  /** Scene mood from pixel analysis */
+  mood?: Mood;
+}

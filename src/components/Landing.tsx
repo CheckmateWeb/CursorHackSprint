@@ -1,5 +1,6 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { SAMPLE_ARTWORKS } from '@/lib/sampleArtworks';
+import { ArtHistoryList } from '@/components/ArtworkInfoPanel';
 import { useAppStore } from '@/store/useAppStore';
 import './Landing.css';
 
@@ -7,15 +8,21 @@ export function Landing() {
   const fileRef = useRef<HTMLInputElement>(null);
   const setImage = useAppStore((s) => s.setImage);
   const setPhase = useAppStore((s) => s.setPhase);
+  const artHistory = useAppStore((s) => s.artHistory);
+  const refreshArtHistory = useAppStore((s) => s.refreshArtHistory);
+
+  useEffect(() => {
+    refreshArtHistory();
+  }, [refreshArtHistory]);
 
   const handleFile = (file: File) => {
     const url = URL.createObjectURL(file);
-    setImage(url, file);
+    setImage(url, file, null);
     setPhase('analyzing');
   };
 
-  const selectSample = (url: string) => {
-    setImage(url);
+  const selectSample = (id: string, url: string) => {
+    setImage(url, null, id);
     setPhase('analyzing');
   };
 
@@ -56,13 +63,20 @@ export function Landing() {
             key={art.id}
             type="button"
             className="sample-card"
-            onClick={() => selectSample(art.url)}
+            onClick={() => selectSample(art.id, art.url)}
           >
             <img src={art.url} alt={art.name} />
             <span className="sample-name">{art.name}</span>
           </button>
         ))}
       </div>
+
+      {artHistory.length > 0 && (
+        <section className="landing-history" aria-label="Gallery history">
+          <h2>Your gallery history</h2>
+          <ArtHistoryList entries={artHistory} />
+        </section>
+      )}
 
       <footer className="landing-footer">
         <p>The frame is only the beginning.</p>

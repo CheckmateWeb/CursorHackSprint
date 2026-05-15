@@ -13,7 +13,7 @@
 .hud-enter-panel {
   pointer-events: auto;
   text-align: center;
-  max-width: 28rem;
+  max-width: min(32rem, 94vw);
   padding: 1.5rem 2rem;
   background: rgba(12, 11, 10, 0.72);
   backdrop-filter: blur(16px);
@@ -26,6 +26,15 @@
   font-size: 1.85rem;
   font-weight: 300;
   margin-bottom: 0.5rem;
+}
+
+.hud-artwork-info {
+  margin: 0.75rem 0 1rem;
+  text-align: left;
+}
+
+.hud-artwork-info .artwork-info {
+  padding: 0.85rem;
 }
 
 .hud-era {

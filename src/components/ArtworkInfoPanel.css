@@ -1,0 +1,165 @@
+.artwork-info {
+  text-align: left;
+  padding: 1rem 1.15rem;
+  background: rgba(12, 11, 10, 0.75);
+  border: 1px solid rgba(201, 169, 98, 0.28);
+  backdrop-filter: blur(12px);
+}
+
+.artwork-info--compact .artwork-info__history {
+  display: none;
+}
+
+.artwork-info__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.artwork-info__badge,
+.artwork-info__masterpiece {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid rgba(201, 169, 98, 0.35);
+  color: var(--gold);
+}
+
+.artwork-info__masterpiece {
+  border-color: rgba(129, 199, 132, 0.45);
+  color: #a5d6a7;
+}
+
+.artwork-info__title {
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-weight: 400;
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+}
+
+.artwork-info__artist {
+  font-size: 0.9rem;
+  color: rgba(244, 239, 230, 0.85);
+  margin-bottom: 0.75rem;
+}
+
+.artwork-info__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.85rem;
+  font-size: 0.72rem;
+  margin-bottom: 0.85rem;
+}
+
+.artwork-info__meta dt {
+  color: rgba(201, 169, 98, 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.artwork-info__meta dd {
+  color: rgba(244, 239, 230, 0.8);
+  margin: 0;
+}
+
+.artwork-info__history {
+  font-family: var(--serif);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: rgba(244, 239, 230, 0.65);
+  font-style: italic;
+}
+
+.art-history-empty {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: rgba(244, 239, 230, 0.45);
+  max-width: 28rem;
+}
+
+.art-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.art-history-item {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem;
+  text-align: left;
+  background: rgba(12, 11, 10, 0.5);
+  border: 1px solid rgba(201, 169, 98, 0.15);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.art-history-item:hover {
+  border-color: rgba(201, 169, 98, 0.4);
+  background: rgba(20, 18, 16, 0.7);
+}
+
+.art-history-thumb {
+  width: 52px;
+  height: 40px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.art-history-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.art-history-text strong {
+  font-family: var(--serif);
+  font-size: 0.88rem;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.art-history-text span {
+  font-size: 0.72rem;
+  color: rgba(244, 239, 230, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.art-history-text time {
+  font-size: 0.65rem;
+  color: rgba(201, 169, 98, 0.55);
+}
+
+.landing-history {
+  width: min(520px, 92vw);
+  margin: 2rem auto 0;
+  padding: 1.25rem;
+  border-top: 1px solid rgba(201, 169, 98, 0.15);
+}
+
+.landing-history h2 {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  font-weight: 400;
+  margin-bottom: 0.75rem;
+  color: var(--gold);
+}
+
+.analyzing-ident {
+  width: min(420px, 92vw);
+  margin-top: 0.5rem;
+}
